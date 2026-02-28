@@ -15,27 +15,24 @@
 </head>
 <body class="bg-light">
 <div class="container-fluid">
-    <!-- ເມນູ + Header -->
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand fw-bold" href="#"><i class="bi bi-folder2-open"></i> DMS Online</a>
-            <div id="userInfo" class="text-white small d-none"></div>
+            <div id="userInfo" class="text-white small d-none ms-auto"></div>
         </div>
     </nav>
 
-    <!-- ເນື້ອຫາ -->
     <div class="row">
-        <!-- Sidebar ເມນູ -->
+        <!-- Sidebar -->
         <div class="col-lg-2 bg-white border-end min-vh-100 p-3">
-            <!-- ເມນູເຊື່ອງເປັນເດີມ -->
-            <button onclick="showPage('list')" class="btn btn-outline-primary w-100 mb-2">📋 ລາຍການເອກະສານ</button>
-            <button onclick="showPage('add')" class="btn btn-outline-success w-100 mb-2">➕ ບັນທຶກໃໝ່</button>
-            <button onclick="logout()" class="btn btn-outline-danger w-100 mt-5">🚪 ອອກຈາກລະບົບ</button>
+            <button id="btn-list" class="btn btn-outline-primary w-100 mb-2">📋 ລາຍການເອກະສານ</button>
+            <button id="btn-add" class="btn btn-outline-success w-100 mb-2">➕ ບັນທຶກໃໝ່</button>
+            <button id="btn-logout" class="btn btn-outline-danger w-100 mt-5">🚪 ອອກຈາກລະບົບ</button>
         </div>
 
-        <!-- ຫນ້າຫຼັກ -->
+        <!-- Main Content -->
         <div class="col-lg-10 p-4" id="mainContent">
-            <!-- ລາຍການເອກະສານ (default) -->
             <div id="page-list">
                 <h2>ລາຍການເອກະສານທັງໝົດ</h2>
                 <table class="table table-hover" id="docTable">
@@ -44,67 +41,96 @@
                 </table>
             </div>
 
-            <!-- ຟອມບັນທຶກ (ເພີ່ມ/ແກ້) -->
             <div id="page-add" class="d-none">
-                <!-- ເຕີມຟອມເດີມຂອງເຈົ້າ (ຂ້ອຍປັບໃຫ້ເຊື່ອມ Supabase ແລ້ວ) -->
-                <!-- ... (ຂ້ອຍຫຍໍ້ເພື່ອບໍ່ຍາວເກີນໄປ) ... -->
-                <button onclick="saveDocument()" class="btn btn-success">ບັນທຶກເຂົ້າ Online</button>
+                <h2>ບັນທຶກເອກະສານໃໝ່</h2>
+                <p>ຟອມບັນທຶກ (ຍັງກຳລັງພັດທະນາ)</p>
+                <!-- ເພີ່ມຟອມເຕັມໄດ້ຕໍ່ພາຍຫຼັງ -->
             </div>
         </div>
     </div>
 </div>
 
 <!-- Login Modal -->
-<div class="modal fade" id="loginModal" tabindex="-1">
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5>ເຂົ້າສູ່ລະບົບ</h5>
+                <h5 class="modal-title" id="loginModalLabel">ເຂົ້າສູ່ລະບົບ / ສະໝັກ</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input id="email" class="form-control mb-3" placeholder="ອີເມວ" type="email">
                 <input id="password" class="form-control mb-3" placeholder="ລະຫັດຜ່ານ" type="password">
-                <button onclick="signIn()" class="btn btn-primary w-100">ເຂົ້າສູ່ລະບົບ</button>
-                <button onclick="signUp()" class="btn btn-secondary w-100 mt-2">ສະໝັກສະມາຊິກໃໝ່</button>
+                <button id="btn-signin" class="btn btn-primary w-100 mb-2">ເຂົ້າສູ່ລະບົບ</button>
+                <button id="btn-signup" class="btn btn-secondary w-100">ສະໝັກສະມາຊິກໃໝ່</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // === ປ່ຽນ 2 ບັນທຶດນີ້ເທົ່ານັ້ນ ===
-    const SUPABASE_URL = 'https://your-project.supabase.co';     // ປ່ຽນເປັນຂອງເຈົ້າ
-    const SUPABASE_ANON_KEY = 'your-anon-key-here';            // ປ່ຽນເປັນຂອງເຈົ້າ
+    // ======================================
+    // ຕັ້ງຄ່າ Supabase (ໃສ່ຄ່າຂອງເຈົ້າທີ່ນີ້)
+    // ======================================
+    const SUPABASE_URL = 'https://xxxxxxxxxxxx.supabase.co';       // ປ່ຽນເປັນ Project URL ຂອງເຈົ້າ
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';  // ປ່ຽນເປັນ anon public key
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     let currentUser = null;
 
-    // ກວດສອບການເຂົ້າສູ່ລະບົບ
+    // ======================================
+    // ຟັງຊັນເຮັດວຽກ
+    // ======================================
     async function checkAuth() {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log("ກຳລັງກວດ session...");
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log("Session:", session);
+        console.log("Auth error:", error);
+
+        if (error) {
+            console.error("Auth error:", error.message);
+        }
+
         if (!session) {
-            new bootstrap.Modal(document.getElementById('loginModal')).show();
+            console.log("ບໍ່ມີ session → ຂຶ້ນ modal");
+            const modalElement = document.getElementById('loginModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            } else {
+                console.error("ບໍ່ພົບ element #loginModal");
+            }
         } else {
             currentUser = session.user;
             document.getElementById('userInfo').innerHTML = `👤 ${currentUser.email}`;
             document.getElementById('userInfo').classList.remove('d-none');
-            loadDocuments();
+            // loadDocuments();  // ເອີ້ນໂຫຼດຂໍ້ມູນເມື່ອເຂົ້າສຳເລັດ
         }
     }
 
     async function signIn() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) alert(error.message); else location.reload();
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            alert("ເຂົ້າສູ່ລະບົບບໍ່ສຳເລັດ: " + error.message);
+        } else {
+            bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+            location.reload();
+        }
     }
 
     async function signUp() {
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) alert(error.message); else alert('ການສະໝັກສຳເລັດ! ກວດອີເມວເພື່ອຢືນຢັນ');
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) {
+            alert("ສະໝັກບໍ່ສຳເລັດ: " + error.message);
+        } else {
+            alert("ສະໝັກສຳເລັດ! ກະລຸນາກວດອີເມວເພື່ອຢືນຢັນ (ຖ້າເປີດ confirmation)");
+            bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+        }
     }
 
     async function logout() {
@@ -112,25 +138,31 @@
         location.reload();
     }
 
-    // ໂຫຼດເອກະສານ (Realtime)
-    async function loadDocuments() {
-        const { data } = await supabase
-            .from('documents')
-            .select('*')
-            .order('created_at', { ascending: false });
-        // ເຕີມຕາຕະລາງ (ຂ້ອຍຫຍໍ້ໃຫ້ເຫັນຮູບແບບ)
-        console.log(data);
-        // ທ່ານສາມາດເຕີມ renderTable() ເຊັ່ນເດີມ
+    // ຟັງຊັນໜ້າຕ່າງ (ງ່າຍໆ ສຳລັບທົດສອບ)
+    function showPage(page) {
+        document.querySelectorAll('#page-list, #page-add').forEach(el => el.classList.add('d-none'));
+        document.getElementById('page-' + page).classList.remove('d-none');
+        console.log("ປ່ຽນໜ້າເປັນ: " + page);
     }
 
-    // Realtime (ອັບເດດອັດຕະໂນມັດ)
-    supabase.channel('documents')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'documents' }, () => {
-            loadDocuments();
-        })
-        .subscribe();
+    // ======================================
+    // ເຊື່ອມ event ປຸ່ມ (ແນະນຳໃຊ້ແບບນີ້ ແທນ onclick inline)
+    // ======================================
+    document.addEventListener('DOMContentLoaded', () => {
+        // ເຊື່ອມປຸ່ມ sidebar
+        document.getElementById('btn-list')?.addEventListener('click', () => showPage('list'));
+        document.getElementById('btn-add')?.addEventListener('click', () => showPage('add'));
+        document.getElementById('btn-logout')?.addEventListener('click', logout);
 
-    window.onload = checkAuth;
+        // ເຊື່ອມປຸ່ມໃນ modal
+        document.getElementById('btn-signin')?.addEventListener('click', signIn);
+        document.getElementById('btn-signup')?.addEventListener('click', signUp);
+
+        // ກວດ auth ເມື່ອໂຫຼດໜ້າ
+        checkAuth();
+    });
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
